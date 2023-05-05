@@ -49,6 +49,12 @@ GET http://host.ru/archive/3bea29ccabbbf64bdebcc055319c5745/
 GET http://host.ru/archive/af1ad8c76fda2e48ea9aed2937e972ea/
 ```
 
+## Как настроить
+Сервис поддерживает следующие переменные окружения, см. `.env.example`:
+- `IS_LOGGING_ENABLED` True или False, включает или выключает логирование
+- `RESPONSE_LAG` задержка ответа в секундах
+- `PHOTOS_ROOT_DIR_PATH` путь к директории с фото, например `test_photos`
+
 # Цели проекта
 
 Код написан в учебных целях — это урок в курсе по Python и веб-разработке на сайте [Devman](https://dvmn.org).
