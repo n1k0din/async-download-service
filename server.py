@@ -51,8 +51,6 @@ async def archive_handler(request: web.Request):
             await asyncio.sleep(RESPONSE_LAG)
     except asyncio.CancelledError:
         logging.info('Download was interrupted')
-    except KeyboardInterrupt:
-        logging.info('hello!')
     finally:
         process.terminate()
     return response
