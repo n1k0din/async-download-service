@@ -54,6 +54,7 @@ GET http://host.ru/archive/af1ad8c76fda2e48ea9aed2937e972ea/
 - `IS_LOGGING_ENABLED` True или False, включает или выключает логирование
 - `RESPONSE_LAG` задержка ответа в секундах
 - `PHOTOS_ROOT_DIR_PATH` путь к директории с фото, например `test_photos`
+- `CHUNK_SIZE_KBYTES` размер порции архивирования в килобайтах
 
 # Цели проекта
 

@@ -1,28 +1,24 @@
 import asyncio
 import logging
+from functools import partial
 from pathlib import Path
 
 import aiofiles
 from aiohttp import web
 from environs import Env
 
-env = Env()
-env.read_env()
 
-
-CHUNK_SIZE_BYTES = 100 * 1024
-
-PHOTOS_ROOT_DIR = Path(env('PHOTOS_ROOT_DIR_PATH'))
-IS_LOGGING_ENABLED = env.bool('IS_LOGGING_ENABLED', True)
-RESPONSE_LAG = env.int('RESPONSE_LAG', 0)
-
-
-async def archive_handler(request: web.Request):
+async def archive_handler(
+    request: web.Request,
+    photos_root_dir: Path,
+    response_lag: int,
+    chunk_size_bytes: int,
+):
     """Collects the archive and sends it to the user."""
     response = web.StreamResponse()
     photos_hash = request.match_info['archive_hash']
 
-    photos_path = PHOTOS_ROOT_DIR / photos_hash
+    photos_path = photos_root_dir / photos_hash
     if not photos_path.exists():
         raise web.HTTPNotFound(text=f'The archive {photos_hash} does not exist!')
 
@@ -38,15 +34,15 @@ async def archive_handler(request: web.Request):
         '.',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        limit=CHUNK_SIZE_BYTES,
+        limit=chunk_size_bytes,
         cwd=photos_path,
     )
     try:
         while not process.stdout.at_eof():
-            chunk = await process.stdout.read(n=CHUNK_SIZE_BYTES)
+            chunk = await process.stdout.read(n=chunk_size_bytes)
             logging.info('Getting archive chunk ...')
             await response.write(chunk)
-            await asyncio.sleep(RESPONSE_LAG)
+            await asyncio.sleep(response_lag)
     except asyncio.CancelledError:
         logging.info('Download was interrupted')
     finally:
@@ -66,11 +62,28 @@ if __name__ == '__main__':
         format='%(asctime)s %(levelname)-8s %(name)-15s %(pathname)-130s %(funcName)-30s %(message)s',
         level=logging.INFO,
     )
-    if not IS_LOGGING_ENABLED:
+    env = Env()
+    env.read_env()
+
+    photos_root_dir = Path(env('PHOTOS_ROOT_DIR_PATH'))
+    is_logging_enabled = env.bool('IS_LOGGING_ENABLED', True)
+    response_lag = env.int('RESPONSE_LAG', 0)
+    chunk_size_bytes = env.int('CHUNK_SIZE_KBYTES', 100) * 1024
+
+    if not is_logging_enabled:
         logging.disable(logging.CRITICAL)
+
     app = web.Application()
     app.add_routes([
         web.get('/', index_page_handler),
-        web.get('/archive/{archive_hash}/', archive_handler),
+        web.get(
+            '/archive/{archive_hash}/',
+            partial(
+                archive_handler,
+                photos_root_dir=photos_root_dir,
+                response_lag=response_lag,
+                chunk_size_bytes=chunk_size_bytes,
+            ),
+        ),
     ])
     web.run_app(app)
