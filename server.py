@@ -20,7 +20,7 @@ RESPONSE_LAG = env.int('RESPONSE_LAG', 0)
 async def archive_handler(request: web.Request):
     """Collects the archive and sends it to the user."""
     response = web.StreamResponse()
-    photos_hash = request.match_info.get('archive_hash')
+    photos_hash = request.match_info['archive_hash']
 
     photos_path = PHOTOS_ROOT_DIR / photos_hash
     if not photos_path.exists():
@@ -42,11 +42,9 @@ async def archive_handler(request: web.Request):
         cwd=photos_path,
     )
     try:
-        while True:
+        while not process.stdout.at_eof():
             chunk = await process.stdout.read(n=CHUNK_SIZE_BYTES)
             logging.info('Getting archive chunk ...')
-            if process.stdout.at_eof():
-                break
             await response.write(chunk)
             await asyncio.sleep(RESPONSE_LAG)
     except asyncio.CancelledError:
