@@ -47,8 +47,9 @@ async def archive_handler(
         logging.info('Download was interrupted')
         raise
     finally:
-        if process.returncode != 0:
+        if process.returncode is None:
             process.kill()
+            await process.communicate()
     return response
 
 
